@@ -45,11 +45,16 @@ export class BusinessesService {
     return business;
   }
 
-  async findOneOwned(id: string, ownerId: string): Promise<Business> {
+  async findById(id: string): Promise<Business> {
     const business = await this.businessesRepository.findOne({ where: { id } });
     if (!business) {
       throw new NotFoundException('Negocio no encontrado');
     }
+    return business;
+  }
+
+  async findOneOwned(id: string, ownerId: string): Promise<Business> {
+    const business = await this.findById(id);
     if (business.ownerId !== ownerId) {
       throw new ForbiddenException('No tienes acceso a este negocio');
     }

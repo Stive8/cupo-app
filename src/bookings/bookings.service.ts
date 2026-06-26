@@ -11,6 +11,7 @@ import { Business } from '../businesses/entities/business.entity';
 import { Service } from '../services/entities/service.entity';
 import { AvailabilitySlot, SlotStatus } from '../slots/entities/availability-slot.entity';
 import { BusinessesService } from '../businesses/businesses.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Booking, BookingStatus } from './entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
@@ -23,6 +24,7 @@ export class BookingsService {
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
     private readonly businessesService: BusinessesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   create(userId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -104,8 +106,8 @@ export class BookingsService {
     });
   }
 
-  cancel(id: string, userId: string): Promise<Booking> {
-    return this.dataSource.transaction(async (manager) => {
+  async cancel(id: string, userId: string): Promise<Booking> {
+    const booking = await this.dataSource.transaction(async (manager) => {
       const booking = await manager.findOne(Booking, { where: { id } });
       if (!booking) {
         throw new NotFoundException('Reserva no encontrada');
@@ -147,5 +149,10 @@ export class BookingsService {
 
       return booking;
     });
+
+    const business = await this.businessesService.findById(booking.businessId);
+    await this.notificationsService.scheduleBookingCancelled(business.ownerId, booking.id);
+
+    return booking;
   }
 }

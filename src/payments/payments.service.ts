@@ -13,6 +13,7 @@ import { DataSource, In, Repository } from 'typeorm';
 import { BookingsService } from '../bookings/bookings.service';
 import { Booking, BookingStatus } from '../bookings/entities/booking.entity';
 import { BusinessesService } from '../businesses/businesses.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AvailabilitySlot, SlotStatus } from '../slots/entities/availability-slot.entity';
 import { UserRole } from '../users/entities/user.entity';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -31,6 +32,7 @@ export class PaymentsService {
     private readonly paymentsRepository: Repository<Payment>,
     private readonly bookingsService: BookingsService,
     private readonly businessesService: BusinessesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async initiate(userId: string, dto: CreatePaymentDto) {
@@ -94,7 +96,7 @@ export class PaymentsService {
 
     const { transaction } = event.data;
 
-    await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const payment = await manager.findOne(Payment, {
         where: { reference: transaction.reference },
         lock: { mode: 'pessimistic_write' },
@@ -103,13 +105,13 @@ export class PaymentsService {
         throw new NotFoundException('Pago no encontrado');
       }
       if (payment.status !== PaymentStatus.PENDING) {
-        return;
+        return { outcome: 'noop' as const };
       }
 
       if (transaction.status === 'PENDING') {
         payment.providerReference = transaction.id;
         await manager.save(payment);
-        return;
+        return { outcome: 'noop' as const };
       }
 
       const booking = await manager.findOne(Booking, {
@@ -127,7 +129,9 @@ export class PaymentsService {
         booking.status = BookingStatus.CONFIRMED;
         await manager.save(payment);
         await manager.save(booking);
-        return;
+
+        const slot = await manager.findOne(AvailabilitySlot, { where: { id: booking.slotId } });
+        return { outcome: 'approved' as const, booking, slotStartTime: slot?.startTime };
       }
 
       payment.status = PaymentStatus.REJECTED;
@@ -145,7 +149,20 @@ export class PaymentsService {
         slot.status = SlotStatus.AVAILABLE;
         await manager.save(slot);
       }
+
+      return { outcome: 'rejected' as const, booking };
     });
+
+    if (result.outcome === 'approved' && result.slotStartTime) {
+      await this.notificationsService.scheduleBookingConfirmed(
+        result.booking.userId,
+        result.booking.id,
+        result.slotStartTime,
+      );
+    } else if (result.outcome === 'rejected') {
+      const business = await this.businessesService.findById(result.booking.businessId);
+      await this.notificationsService.scheduleBookingCancelled(business.ownerId, result.booking.id);
+    }
   }
 
   private buildIntegritySignature(reference: string, amountCents: number): string {
