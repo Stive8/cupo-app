@@ -24,6 +24,16 @@ export class ServicesService {
     return this.servicesRepository.find({ where: { businessId, isActive: true } });
   }
 
+  async findOneByBusiness(id: string, businessId: string): Promise<Service> {
+    const service = await this.servicesRepository.findOne({
+      where: { id, businessId, isActive: true },
+    });
+    if (!service) {
+      throw new NotFoundException('Servicio no encontrado para este negocio');
+    }
+    return service;
+  }
+
   private async findOneOwned(id: string, ownerId: string): Promise<Service> {
     const service = await this.servicesRepository.findOne({ where: { id } });
     if (!service) {
