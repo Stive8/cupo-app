@@ -1,9 +1,12 @@
 import {
+  IsInt,
   IsLatitude,
   IsLongitude,
   IsObject,
   IsOptional,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class CreateBusinessDto {
@@ -31,4 +34,10 @@ export class CreateBusinessDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  depositPercentage?: number;
 }

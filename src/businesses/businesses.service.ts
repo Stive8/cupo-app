@@ -26,6 +26,15 @@ export class BusinessesService {
     return this.businessesRepository.find({ where: { ownerId } });
   }
 
+  findAllPublic(city?: string): Promise<Business[]> {
+    return this.businessesRepository.find({
+      where: {
+        status: BusinessStatus.ACTIVE,
+        ...(city ? { city } : {}),
+      },
+    });
+  }
+
   async findOnePublic(id: string): Promise<Business> {
     const business = await this.businessesRepository.findOne({
       where: { id, status: BusinessStatus.ACTIVE },

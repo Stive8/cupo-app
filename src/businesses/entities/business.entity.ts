@@ -61,6 +61,9 @@ export class Business {
   @Column({ type: 'enum', enum: BusinessStatus, default: BusinessStatus.PENDING })
   status: BusinessStatus;
 
+  @Column({ name: 'deposit_percentage', type: 'int', default: 30 })
+  depositPercentage: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

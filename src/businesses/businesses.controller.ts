@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -15,6 +16,7 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { BusinessesService } from './businesses.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { UpdateBusinessDto } from './dto/update-business.dto';
+import { SearchBusinessesQueryDto } from './dto/search-businesses-query.dto';
 
 @Controller('businesses')
 export class BusinessesController {
@@ -24,6 +26,12 @@ export class BusinessesController {
   @Post()
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateBusinessDto) {
     return this.businessesService.create(user.sub, dto);
+  }
+
+  @Public()
+  @Get()
+  search(@Query() query: SearchBusinessesQueryDto) {
+    return this.businessesService.findAllPublic(query.city);
   }
 
   @Roles(UserRole.BUSINESS_OWNER)
