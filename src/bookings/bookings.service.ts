@@ -73,6 +73,22 @@ export class BookingsService {
     });
   }
 
+  async findById(id: string): Promise<Booking> {
+    const booking = await this.bookingsRepository.findOne({ where: { id } });
+    if (!booking) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+    return booking;
+  }
+
+  async findOneOwned(id: string, userId: string): Promise<Booking> {
+    const booking = await this.findById(id);
+    if (booking.userId !== userId) {
+      throw new ForbiddenException('No tienes acceso a esta reserva');
+    }
+    return booking;
+  }
+
   findAllByUser(userId: string): Promise<Booking[]> {
     return this.bookingsRepository.find({
       where: { userId },

@@ -30,6 +30,9 @@ export class Payment {
   @Column({ default: 'wompi' })
   provider: string;
 
+  @Column({ unique: true })
+  reference: string;
+
   @Column({ name: 'provider_reference', type: 'varchar', nullable: true })
   providerReference: string | null;
 
