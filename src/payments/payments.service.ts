@@ -7,8 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { createHash, timingSafeEqual } from 'crypto';
-import { v4 as uuid } from 'uuid';
+import { createHash, randomUUID, timingSafeEqual } from 'crypto';
 import { DataSource, In, Repository } from 'typeorm';
 import { BookingsService } from '../bookings/bookings.service';
 import { Booking, BookingStatus } from '../bookings/entities/booking.entity';
@@ -48,7 +47,7 @@ export class PaymentsService {
       throw new ConflictException('Ya existe un pago en proceso para esta reserva');
     }
 
-    const reference = uuid();
+    const reference = randomUUID();
     const amountCents = booking.depositCents;
 
     const payment = this.paymentsRepository.create({

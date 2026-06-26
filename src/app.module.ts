@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { Module } from '@nestjs/common';
+import { Module, Provider } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -18,9 +18,22 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
+const guardProviders: Provider[] = [
+  { provide: APP_GUARD, useClass: JwtAuthGuard },
+  { provide: APP_GUARD, useClass: RolesGuard },
+];
+// El rate limiting se desactiva en e2e: los tests registran muchos usuarios
+// en pocos segundos y no representan un intento de fuerza bruta real.
+if (process.env.NODE_ENV !== 'test') {
+  guardProviders.unshift({ provide: APP_GUARD, useClass: ThrottlerGuard });
+}
+
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+    }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 60 }],
@@ -48,11 +61,6 @@ import { RolesGuard } from './common/guards/roles.guard';
     NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
-  ],
+  providers: [AppService, ...guardProviders],
 })
 export class AppModule {}
