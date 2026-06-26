@@ -43,8 +43,20 @@ export class PaymentsService {
     const existing = await this.paymentsRepository.findOne({
       where: { bookingId: booking.id, status: In([PaymentStatus.PENDING, PaymentStatus.APPROVED]) },
     });
+    if (existing?.status === PaymentStatus.APPROVED) {
+      throw new ConflictException('Esta reserva ya tiene un pago aprobado');
+    }
     if (existing) {
-      throw new ConflictException('Ya existe un pago en proceso para esta reserva');
+      // Pago pendiente: se reenvían los mismos datos (mismo reference) en vez de
+      // crear uno nuevo, para que el cliente pueda recargar la página de pago.
+      return {
+        paymentId: existing.id,
+        reference: existing.reference,
+        amountCents: existing.amountCents,
+        currency: existing.currency,
+        publicKey: this.config.get<string>('WOMPI_PUBLIC_KEY'),
+        integritySignature: this.buildIntegritySignature(existing.reference, existing.amountCents),
+      };
     }
 
     const reference = randomUUID();

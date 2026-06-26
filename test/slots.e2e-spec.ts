@@ -95,6 +95,40 @@ describe('Slots (e2e)', () => {
     expect(afterUnblock.body.data.some((s: { id: string }) => s.id === slotId)).toBe(true);
   });
 
+  it('lets the owner manage all of their slots regardless of status (available/blocked)', async () => {
+    const { owner, businessId, serviceId } = await setupBusinessAndService();
+    const createRes = await request(app.getHttpServer())
+      .post('/slots')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({
+        businessId,
+        serviceId,
+        startTime: '2027-01-25T10:00:00.000Z',
+        endTime: '2027-01-25T11:00:00.000Z',
+      })
+      .expect(201);
+    const slotId = createRes.body.data.id;
+
+    await request(app.getHttpServer())
+      .post(`/slots/${slotId}/block`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(201);
+
+    const manageList = await request(app.getHttpServer())
+      .get(`/slots/business/${businessId}/manage`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(200);
+    const found = manageList.body.data.find((s: { id: string }) => s.id === slotId);
+    expect(found).toBeDefined();
+    expect(found.status).toBe('blocked');
+
+    const otherOwner = await registerAndLogin(app, 'business_owner');
+    await request(app.getHttpServer())
+      .get(`/slots/business/${businessId}/manage`)
+      .set('Authorization', `Bearer ${otherOwner.token}`)
+      .expect(403);
+  });
+
   it('forbids an unrelated owner from blocking someone else slot', async () => {
     const { owner, businessId, serviceId } = await setupBusinessAndService();
     const createRes = await request(app.getHttpServer())

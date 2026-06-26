@@ -38,6 +38,15 @@ export class SlotsController {
   }
 
   @Roles(UserRole.BUSINESS_OWNER)
+  @Get('business/:businessId/manage')
+  findAllByBusiness(
+    @CurrentUser() user: JwtPayload,
+    @Param('businessId') businessId: string,
+  ) {
+    return this.slotsService.findAllByBusiness(businessId, user.sub);
+  }
+
+  @Roles(UserRole.BUSINESS_OWNER)
   @Patch(':id')
   update(
     @CurrentUser() user: JwtPayload,

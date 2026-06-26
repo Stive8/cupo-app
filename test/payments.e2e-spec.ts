@@ -48,6 +48,53 @@ describe('Payments (e2e)', () => {
     expect(res.body.data.integritySignature).toHaveLength(64);
   });
 
+  it('re-initiating a payment while one is still pending returns the same reference (idempotent)', async () => {
+    const { customer, booking } = await setupPendingBooking(
+      '2027-04-06T10:00:00.000Z',
+      '2027-04-06T11:00:00.000Z',
+    );
+
+    const first = await request(app.getHttpServer())
+      .post('/payments')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .send({ bookingId: booking.id })
+      .expect(201);
+
+    const second = await request(app.getHttpServer())
+      .post('/payments')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .send({ bookingId: booking.id })
+      .expect(201);
+
+    expect(second.body.data.reference).toBe(first.body.data.reference);
+    expect(second.body.data.integritySignature).toBe(first.body.data.integritySignature);
+  });
+
+  it('rejects initiating a new payment once one is already approved', async () => {
+    const { customer, booking } = await setupPendingBooking(
+      '2027-04-07T10:00:00.000Z',
+      '2027-04-07T11:00:00.000Z',
+    );
+    const payment = await request(app.getHttpServer())
+      .post('/payments')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .send({ bookingId: booking.id })
+      .expect(201);
+
+    const event = buildWompiEvent({
+      reference: payment.body.data.reference,
+      status: 'APPROVED',
+      amountCents: booking.depositCents,
+    });
+    await request(app.getHttpServer()).post('/payments/webhook').send(event).expect(200);
+
+    await request(app.getHttpServer())
+      .post('/payments')
+      .set('Authorization', `Bearer ${customer.token}`)
+      .send({ bookingId: booking.id })
+      .expect(409);
+  });
+
   it('rejects a webhook with an invalid signature', async () => {
     const { customer, booking } = await setupPendingBooking(
       '2027-04-02T10:00:00.000Z',

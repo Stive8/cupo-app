@@ -60,6 +60,11 @@ export class SlotsService {
     return this.slotsRepository.find({ where, order: { startTime: 'ASC' } });
   }
 
+  async findAllByBusiness(businessId: string, ownerId: string): Promise<AvailabilitySlot[]> {
+    await this.businessesService.findOneOwned(businessId, ownerId);
+    return this.slotsRepository.find({ where: { businessId }, order: { startTime: 'ASC' } });
+  }
+
   private async findOneOwned(id: string, ownerId: string): Promise<AvailabilitySlot> {
     const slot = await this.slotsRepository.findOne({ where: { id } });
     if (!slot) {
