@@ -1,6 +1,6 @@
 # Reserva Cliente / Reserva Prestador — visual redesign
 
-Status: Approved. Implementation in progress.
+Status: Implemented (branch `redesign/reserva-cliente-prestador`).
 
 ## Context
 
