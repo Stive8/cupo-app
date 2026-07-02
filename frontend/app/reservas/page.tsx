@@ -6,14 +6,21 @@ import { FormError } from '@/components/form-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Booking } from '@/lib/types/api';
+import type { Booking, BookingStatus } from '@/lib/types/api';
 import { cancelBookingAction } from './actions';
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: 'Pendiente de pago',
   confirmed: 'Confirmada',
   cancelled: 'Cancelada',
   completed: 'Completada',
+};
+
+const STATUS_VARIANT: Record<BookingStatus, 'default' | 'secondary' | 'outline'> = {
+  pending: 'secondary',
+  confirmed: 'default',
+  cancelled: 'outline',
+  completed: 'secondary',
 };
 
 export default async function MyBookingsPage({
@@ -27,7 +34,7 @@ export default async function MyBookingsPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Mis reservas</h1>
+      <h1 className="font-heading text-2xl font-semibold">Mis reservas</h1>
       <FormError message={error} />
 
       {bookings.length === 0 ? (
@@ -47,7 +54,9 @@ export default async function MyBookingsPage({
               <Card key={booking.id}>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
                   <div className="space-y-1 text-sm">
-                    <Badge variant="secondary">{STATUS_LABEL[booking.status]}</Badge>
+                    <Badge variant={STATUS_VARIANT[booking.status]}>
+                      {STATUS_LABEL[booking.status]}
+                    </Badge>
                     <p>Depósito: {formatCents(booking.depositCents)}</p>
                     <p className="text-muted-foreground">
                       Creada: {formatDateTime(booking.createdAt)}
