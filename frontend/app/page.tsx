@@ -40,7 +40,7 @@ export default async function HomePage({
         </p>
       </div>
 
-      <form className="flex max-w-md gap-2 pb-2">
+      <form action="/buscar" className="flex max-w-md gap-2 pb-2">
         <Input name="city" placeholder="Ciudad (ej. Bogotá)" defaultValue={city} />
         <Button type="submit">Buscar</Button>
       </form>
@@ -51,7 +51,9 @@ export default async function HomePage({
         <h2 className="font-heading text-2xl font-semibold tracking-tight">
           Destacados cerca de ti
         </h2>
-        <span className="text-sm font-semibold text-primary">Ver todo →</span>
+        <Link href="/buscar" className="text-sm font-semibold text-primary hover:underline">
+          Ver todo →
+        </Link>
       </div>
 
       {businesses.length === 0 ? (

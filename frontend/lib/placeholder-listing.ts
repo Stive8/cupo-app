@@ -45,3 +45,18 @@ export const CATEGORY_PILLS = [
   'Espacios',
   'Experiencias',
 ];
+
+// Fixed x/y percentage positions for the decorative map — no real geocoding exists.
+const MAP_POSITIONS: [number, number][] = [
+  [38, 42],
+  [66, 30],
+  [24, 62],
+  [52, 54],
+  [72, 64],
+  [44, 36],
+];
+
+export function placeholderMapPosition(index: number): { x: number; y: number } {
+  const [x, y] = MAP_POSITIONS[index % MAP_POSITIONS.length];
+  return { x, y };
+}
