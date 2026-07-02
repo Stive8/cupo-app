@@ -24,13 +24,13 @@ export async function updateBusinessAction(businessId: string, formData: FormDat
     });
   } catch (error) {
     if (error instanceof ApiError) {
-      redirect(`/panel/${businessId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/panel/${businessId}/ajustes?error=${encodeURIComponent(error.message)}`);
     }
     throw error;
   }
 
   revalidatePath(`/panel/${businessId}`);
-  redirect(`/panel/${businessId}`);
+  redirect(`/panel/${businessId}/ajustes`);
 }
 
 export async function publishBusinessAction(businessId: string) {
@@ -43,11 +43,11 @@ export async function publishBusinessAction(businessId: string) {
     });
   } catch (error) {
     if (error instanceof ApiError) {
-      redirect(`/panel/${businessId}?error=${encodeURIComponent(error.message)}`);
+      redirect(`/panel/${businessId}/ajustes?error=${encodeURIComponent(error.message)}`);
     }
     throw error;
   }
 
   revalidatePath(`/panel/${businessId}`);
-  redirect(`/panel/${businessId}`);
+  redirect(`/panel/${businessId}/ajustes`);
 }

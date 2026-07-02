@@ -1,100 +1,116 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/server/session';
 import { getOwnedBusinessOrNotFound } from '@/lib/server/businesses';
-import { FormError } from '@/components/form-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
+import { apiFetch } from '@/lib/server/api';
+import { formatCents, formatDateTime } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { updateBusinessAction, publishBusinessAction } from './actions';
+import type { AvailabilitySlot, Booking } from '@/lib/types/api';
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pendiente',
-  active: 'Publicado',
-  suspended: 'Suspendido',
-};
+function currentTimeMs(): number {
+  return Date.now();
+}
 
-export default async function BusinessDetailPage({
+export default async function BusinessDashboardPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ businessId: string }>;
-  searchParams: Promise<{ error?: string }>;
 }) {
   const { businessId } = await params;
-  const { error } = await searchParams;
   const session = await requireRole('business_owner');
   const business = await getOwnedBusinessOrNotFound(session.token, businessId);
 
-  const boundUpdate = updateBusinessAction.bind(null, businessId);
-  const boundPublish = publishBusinessAction.bind(null, businessId);
+  const [bookings, slots] = await Promise.all([
+    apiFetch<Booking[]>(`/bookings/business/${businessId}`, { token: session.token }),
+    apiFetch<AvailabilitySlot[]>(`/slots/business/${businessId}`),
+  ]);
+
+  const slotsById = new Map(slots.map((slot) => [slot.id, slot]));
+  const confirmedCount = bookings.filter((b) => b.status === 'confirmed').length;
+  const pendingCount = bookings.filter((b) => b.status === 'pending').length;
+  const completedCount = bookings.filter((b) => b.status === 'completed').length;
+  const revenueCents = bookings
+    .filter((b) => b.status === 'confirmed' || b.status === 'completed')
+    .reduce((sum, b) => sum + b.depositCents, 0);
+
+  const now = currentTimeMs();
+  const upcoming = bookings
+    .filter((b) => b.status === 'confirmed')
+    .map((b) => ({ booking: b, slot: slotsById.get(b.slotId) }))
+    .filter(
+      (x): x is { booking: Booking; slot: AvailabilitySlot } =>
+        x.slot !== undefined && new Date(x.slot.startTime).getTime() > now,
+    )
+    .sort((a, b) => a.slot.startTime.localeCompare(b.slot.startTime))
+    .slice(0, 5);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{business.name}</h1>
-        <Badge variant={business.status === 'active' ? 'default' : 'secondary'}>
-          {STATUS_LABEL[business.status]}
-        </Badge>
-      </div>
-
-      <nav className="flex gap-4 text-sm">
-        <Link href={`/panel/${businessId}/servicios`} className="underline">
-          Servicios
-        </Link>
-        <Link href={`/panel/${businessId}/horarios`} className="underline">
-          Horarios
-        </Link>
-        <Link href={`/panel/${businessId}/reservas`} className="underline">
-          Reservas
-        </Link>
-      </nav>
-
-      <FormError message={error} />
+    <div className="space-y-6">
+      <h1 className="font-heading text-2xl font-semibold">Dashboard</h1>
 
       {business.status !== 'active' && (
-        <form action={boundPublish}>
-          <Button type="submit">Publicar negocio</Button>
-        </form>
+        <Card className="border-primary/40 bg-accent">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6 text-sm">
+            <span>Tu negocio todavía no está publicado.</span>
+            <Link
+              href={`/panel/${businessId}/ajustes`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Publicar en Ajustes →
+            </Link>
+          </CardContent>
+        </Card>
       )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Confirmadas</CardTitle>
+          </CardHeader>
+          <CardContent className="font-heading text-3xl font-semibold">{confirmedCount}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Pendientes de pago</CardTitle>
+          </CardHeader>
+          <CardContent className="font-heading text-3xl font-semibold">{pendingCount}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Completadas</CardTitle>
+          </CardHeader>
+          <CardContent className="font-heading text-3xl font-semibold">{completedCount}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Ingresos por depósitos</CardTitle>
+          </CardHeader>
+          <CardContent className="font-heading text-3xl font-semibold">
+            {formatCents(revenueCents)}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Editar información</CardTitle>
+          <CardTitle>Próximas reservas</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form action={boundUpdate} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input id="name" name="name" defaultValue={business.name} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Dirección</Label>
-              <Input id="address" name="address" defaultValue={business.address} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="city">Ciudad</Label>
-              <Input id="city" name="city" defaultValue={business.city} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea id="description" name="description" defaultValue={business.description ?? ''} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="depositPercentage">Porcentaje de depósito (%)</Label>
-              <Input
-                id="depositPercentage"
-                name="depositPercentage"
-                type="number"
-                min={1}
-                max={100}
-                defaultValue={business.depositPercentage}
-              />
-            </div>
-            <Button type="submit">Guardar cambios</Button>
-          </form>
+        <CardContent className="space-y-2">
+          {upcoming.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tienes reservas confirmadas próximas.</p>
+          ) : (
+            upcoming.map(({ booking, slot }) => (
+              <div key={booking.id} className="flex items-center justify-between text-sm">
+                <span>{formatDateTime(slot.startTime)}</span>
+                <span className="text-muted-foreground">{formatCents(booking.depositCents)}</span>
+              </div>
+            ))
+          )}
+          <Link
+            href={`/panel/${businessId}/horarios`}
+            className="inline-block pt-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Ver agenda →
+          </Link>
         </CardContent>
       </Card>
     </div>
