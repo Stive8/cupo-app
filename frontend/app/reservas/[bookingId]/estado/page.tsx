@@ -46,9 +46,14 @@ export default async function BookingStatusPage({
           )}
           {approved ? (
             <div className="flex gap-2">
-              <Button render={<Link href="/reservas">Ver mis reservas</Link>} className="flex-1" />
+              <Button
+                render={<Link href="/reservas">Ver mis reservas</Link>}
+                nativeButton={false}
+                className="flex-1"
+              />
               <Button
                 render={<Link href="/">Explorar más</Link>}
+                nativeButton={false}
                 variant="outline"
                 className="flex-1"
               />

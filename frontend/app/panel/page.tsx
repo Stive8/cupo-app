@@ -19,7 +19,7 @@ export default async function PanelHomePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold">Mis negocios</h1>
-        <Button render={<Link href="/panel/nuevo">+ Nuevo negocio</Link>} />
+        <Button render={<Link href="/panel/nuevo">+ Nuevo negocio</Link>} nativeButton={false} />
       </div>
 
       {businesses.length === 0 && (

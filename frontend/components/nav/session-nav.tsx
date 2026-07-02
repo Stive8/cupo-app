@@ -21,7 +21,11 @@ export async function SessionNav() {
               <Link href="/login" className="px-2 py-1 text-foreground/80 hover:text-foreground">
                 Iniciar sesión
               </Link>
-              <Button render={<Link href="/register">Regístrate</Link>} size="sm" />
+              <Button
+                render={<Link href="/register">Regístrate</Link>}
+                nativeButton={false}
+                size="sm"
+              />
             </>
           )}
           {session?.role === 'customer' && (

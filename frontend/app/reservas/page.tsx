@@ -66,6 +66,7 @@ export default async function MyBookingsPage({
                     {booking.status === 'pending' && (
                       <Button
                         render={<Link href={`/reservas/${booking.id}/pagar`}>Pagar</Link>}
+                        nativeButton={false}
                         size="sm"
                       />
                     )}
