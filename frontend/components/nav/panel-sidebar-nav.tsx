@@ -16,7 +16,7 @@ export function PanelSidebarNav({ businessId }: { businessId: string }) {
   const base = `/panel/${businessId}`;
 
   return (
-    <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+    <nav className="flex gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] lg:flex-col lg:overflow-visible lg:[mask-image:none]">
       {NAV_ITEMS.map((item) => {
         const href = `${base}${item.href}`;
         const active = pathname === href;
