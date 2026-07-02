@@ -21,7 +21,7 @@ export default async function NewBusinessPage({
 
   return (
     <div className="max-w-lg space-y-4">
-      <h1 className="text-2xl font-semibold">Nuevo negocio</h1>
+      <h1 className="font-heading text-2xl font-semibold">Nuevo negocio</h1>
       <Card>
         <CardHeader>
           <CardTitle>Datos del negocio</CardTitle>

@@ -18,7 +18,7 @@ export default async function PanelHomePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Mis negocios</h1>
+        <h1 className="font-heading text-2xl font-semibold">Mis negocios</h1>
         <Button render={<Link href="/panel/nuevo">+ Nuevo negocio</Link>} />
       </div>
 
