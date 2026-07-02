@@ -1,11 +1,12 @@
 import 'server-only';
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { apiFetch } from './api';
 import type { Business } from '../types/api';
 
-export function listOwnedBusinesses(token: string): Promise<Business[]> {
+export const listOwnedBusinesses = cache((token: string): Promise<Business[]> => {
   return apiFetch<Business[]>('/businesses/me', { token });
-}
+});
 
 export async function getOwnedBusinessOrNotFound(
   token: string,
