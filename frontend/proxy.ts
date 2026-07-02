@@ -15,7 +15,7 @@ function getSecret() {
 
 function redirectToLogin(request: NextRequest) {
   const url = new URL('/login', request.url);
-  url.searchParams.set('redirect', request.nextUrl.pathname);
+  url.searchParams.set('redirect', request.nextUrl.pathname + request.nextUrl.search);
   return NextResponse.redirect(url);
 }
 
