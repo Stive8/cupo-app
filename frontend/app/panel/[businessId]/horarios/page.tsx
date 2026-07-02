@@ -1,20 +1,11 @@
 import { requireRole } from '@/lib/server/session';
 import { getOwnedBusinessOrNotFound } from '@/lib/server/businesses';
 import { apiFetch } from '@/lib/server/api';
-import { formatDateTime } from '@/lib/format';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { AvailabilitySlot, Service } from '@/lib/types/api';
 import { createSlotAction, blockSlotAction, unblockSlotAction, deleteSlotAction } from './actions';
@@ -24,6 +15,30 @@ const STATUS_LABEL: Record<string, string> = {
   booked: 'Reservado',
   blocked: 'Bloqueado',
 };
+
+const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
+  available: 'default',
+  booked: 'secondary',
+  blocked: 'outline',
+};
+
+function dateKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function dayHeading(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-CO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
+function timeRange(startIso: string, endIso: string): string {
+  const opts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
+  return `${new Date(startIso).toLocaleTimeString('es-CO', opts)} – ${new Date(endIso).toLocaleTimeString('es-CO', opts)}`;
+}
 
 export default async function SlotsPage({
   params,
@@ -44,70 +59,80 @@ export default async function SlotsPage({
 
   const boundCreate = createSlotAction.bind(null, businessId);
 
+  const sorted = [...slots].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const groups = new Map<string, AvailabilitySlot[]>();
+  for (const slot of sorted) {
+    const key = dateKey(slot.startTime);
+    const arr = groups.get(key) ?? [];
+    arr.push(slot);
+    groups.set(key, arr);
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-semibold">Horarios</h1>
+      <h1 className="font-heading text-2xl font-semibold">Agenda</h1>
       <FormError message={error} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Horarios actuales</CardTitle>
+          <CardTitle>Próximos horarios</CardTitle>
         </CardHeader>
-        <CardContent>
-          {slots.length === 0 ? (
+        <CardContent className="space-y-6">
+          {groups.size === 0 ? (
             <p className="text-sm text-muted-foreground">Todavía no tienes horarios.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Inicio</TableHead>
-                  <TableHead>Fin</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {slots.map((slot) => {
-                  const boundBlock = blockSlotAction.bind(null, businessId, slot.id);
-                  const boundUnblock = unblockSlotAction.bind(null, businessId, slot.id);
-                  const boundDelete = deleteSlotAction.bind(null, businessId, slot.id);
-                  return (
-                    <TableRow key={slot.id}>
-                      <TableCell>{formatDateTime(slot.startTime)}</TableCell>
-                      <TableCell>{formatDateTime(slot.endTime)}</TableCell>
-                      <TableCell>
-                        <Badge variant={slot.status === 'available' ? 'default' : 'secondary'}>
-                          {STATUS_LABEL[slot.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="flex gap-2">
-                        {slot.status === 'available' && (
-                          <>
-                            <form action={boundBlock}>
+            Array.from(groups.entries()).map(([day, daySlots]) => (
+              <div key={day} className="space-y-2">
+                <h3 className="font-heading text-sm font-semibold capitalize text-foreground">
+                  {dayHeading(daySlots[0].startTime)}
+                </h3>
+                <div className="space-y-2">
+                  {daySlots.map((slot) => {
+                    const boundBlock = blockSlotAction.bind(null, businessId, slot.id);
+                    const boundUnblock = unblockSlotAction.bind(null, businessId, slot.id);
+                    const boundDelete = deleteSlotAction.bind(null, businessId, slot.id);
+                    return (
+                      <div
+                        key={slot.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium">
+                            {timeRange(slot.startTime, slot.endTime)}
+                          </span>
+                          <Badge variant={STATUS_VARIANT[slot.status]}>
+                            {STATUS_LABEL[slot.status]}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-2">
+                          {slot.status === 'available' && (
+                            <>
+                              <form action={boundBlock}>
+                                <Button type="submit" variant="outline" size="sm">
+                                  Bloquear
+                                </Button>
+                              </form>
+                              <form action={boundDelete}>
+                                <Button type="submit" variant="ghost" size="sm">
+                                  Eliminar
+                                </Button>
+                              </form>
+                            </>
+                          )}
+                          {slot.status === 'blocked' && (
+                            <form action={boundUnblock}>
                               <Button type="submit" variant="outline" size="sm">
-                                Bloquear
+                                Desbloquear
                               </Button>
                             </form>
-                            <form action={boundDelete}>
-                              <Button type="submit" variant="ghost" size="sm">
-                                Eliminar
-                              </Button>
-                            </form>
-                          </>
-                        )}
-                        {slot.status === 'blocked' && (
-                          <form action={boundUnblock}>
-                            <Button type="submit" variant="outline" size="sm">
-                              Desbloquear
-                            </Button>
-                          </form>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           )}
         </CardContent>
       </Card>

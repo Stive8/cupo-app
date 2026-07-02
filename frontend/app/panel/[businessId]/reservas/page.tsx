@@ -35,7 +35,7 @@ export default async function BusinessBookingsPage({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-semibold">Reservas</h1>
+      <h1 className="font-heading text-2xl font-semibold">Reservas</h1>
       <Card>
         <CardContent className="pt-6">
           {bookings.length === 0 ? (
