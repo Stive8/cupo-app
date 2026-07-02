@@ -14,11 +14,13 @@ export default async function HomePage({
   const businesses = await apiFetch<Business[]>('/businesses', { query: { city } });
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold">Reserva tu cancha</h1>
+    <div className="mx-auto max-w-5xl space-y-10 px-4 py-14">
+      <div className="mx-auto max-w-xl space-y-3 text-center">
+        <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">
+          Reserva tu cancha, sin fricción.
+        </h1>
         <p className="text-muted-foreground">
-          Busca canchas deportivas disponibles en tu ciudad
+          Encuentra canchas deportivas disponibles cerca de ti y agenda en minutos.
         </p>
       </div>
 
@@ -37,7 +39,7 @@ export default async function HomePage({
             <Link key={business.id} href={`/negocios/${business.id}`}>
               <Card className="h-full transition-colors hover:border-primary">
                 <CardHeader>
-                  <CardTitle className="text-base">{business.name}</CardTitle>
+                  <CardTitle className="text-lg">{business.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
                   {business.city}
