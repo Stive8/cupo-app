@@ -1,27 +1,10 @@
-import Link from 'next/link';
 import { requireRole } from '@/lib/server/session';
 import { apiFetch } from '@/lib/server/api';
-import { formatCents, formatDateTime } from '@/lib/format';
 import { FormError } from '@/components/form-error';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import type { Booking, BookingStatus } from '@/lib/types/api';
+import { placeholderListing } from '@/lib/placeholder-listing';
+import { TripsTabs, type TripBusiness } from '@/components/booking/trips-tabs';
+import type { Booking, Business } from '@/lib/types/api';
 import { cancelBookingAction } from './actions';
-
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: 'Pendiente de pago',
-  confirmed: 'Confirmada',
-  cancelled: 'Cancelada',
-  completed: 'Completada',
-};
-
-const STATUS_VARIANT: Record<BookingStatus, 'default' | 'secondary' | 'outline'> = {
-  pending: 'secondary',
-  confirmed: 'default',
-  cancelled: 'outline',
-  completed: 'secondary',
-};
 
 export default async function MyBookingsPage({
   searchParams,
@@ -32,58 +15,51 @@ export default async function MyBookingsPage({
   const session = await requireRole('customer');
   const bookings = await apiFetch<Booking[]>('/bookings/me', { token: session.token });
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
-      <h1 className="font-heading text-2xl font-semibold">Mis reservas</h1>
-      <FormError message={error} />
+  const uniqueBusinessIds = [...new Set(bookings.map((b) => b.businessId))];
+  const businessEntries = await Promise.all(
+    uniqueBusinessIds.map(async (id, index): Promise<[string, TripBusiness]> => {
+      const business = await apiFetch<Business>(`/businesses/${id}`).catch(
+        (): Business => ({
+          id,
+          ownerId: '',
+          name: 'Negocio',
+          vertical: 'sports_field',
+          description: null,
+          address: '',
+          city: '',
+          lat: null,
+          lng: null,
+          metadata: null,
+          status: 'active',
+          depositPercentage: 0,
+          createdAt: '',
+          deletedAt: null,
+        }),
+      );
+      const placeholder = placeholderListing(id, index);
+      return [
+        id,
+        {
+          name: business.name,
+          city: business.city,
+          photo: placeholder.photo,
+          categoryLabel: placeholder.categoryLabel,
+        },
+      ];
+    }),
+  );
+  const businesses = Object.fromEntries(businessEntries);
 
-      {bookings.length === 0 ? (
-        <p className="text-muted-foreground">
-          Todavía no tienes reservas.{' '}
-          <Link href="/" className="underline">
-            Busca una cancha
-          </Link>
-          .
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {bookings.map((booking) => {
-            const boundCancel = cancelBookingAction.bind(null, booking.id);
-            const cancellable = booking.status === 'pending' || booking.status === 'confirmed';
-            return (
-              <Card key={booking.id}>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-                  <div className="space-y-1 text-sm">
-                    <Badge variant={STATUS_VARIANT[booking.status]}>
-                      {STATUS_LABEL[booking.status]}
-                    </Badge>
-                    <p>Depósito: {formatCents(booking.depositCents)}</p>
-                    <p className="text-muted-foreground">
-                      Creada: {formatDateTime(booking.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {booking.status === 'pending' && (
-                      <Button
-                        render={<Link href={`/reservas/${booking.id}/pagar`}>Pagar</Link>}
-                        nativeButton={false}
-                        size="sm"
-                      />
-                    )}
-                    {cancellable && (
-                      <form action={boundCancel}>
-                        <Button type="submit" variant="outline" size="sm">
-                          Cancelar
-                        </Button>
-                      </form>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-7">
+      <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+        Mis reservas
+      </h1>
+      <p className="mb-6 mt-1.5 text-[15px] text-muted-foreground">
+        Gestiona tus próximas citas y revisa tu historial.
+      </p>
+      <FormError message={error} />
+      <TripsTabs bookings={bookings} businesses={businesses} cancelBookingAction={cancelBookingAction} />
     </div>
   );
 }
