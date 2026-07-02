@@ -21,7 +21,7 @@ export default async function BusinessDashboardPage({
 
   const [bookings, slots] = await Promise.all([
     apiFetch<Booking[]>(`/bookings/business/${businessId}`, { token: session.token }),
-    apiFetch<AvailabilitySlot[]>(`/slots/business/${businessId}`),
+    apiFetch<AvailabilitySlot[]>(`/slots/business/${businessId}/manage`, { token: session.token }),
   ]);
 
   const slotsById = new Map(slots.map((slot) => [slot.id, slot]));
